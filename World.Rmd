@@ -1,0 +1,235 @@
+---
+title: "Analysing countries of the world using ggplot2"
+author: "David Ju Nyambe"
+date: "1/20/2021"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_chunk$set(warning = FALSE)
+```
+
+## Questions to be answered
+
+1. Top 30 countries with the highest populations
+2. Top 30 countries with the largest area
+3. Birthrate and deathrate of 50 countries with the highest literacy levels
+4. Birthrate and deathrate of 50 countires with the lowest literacy
+5. GDP by region
+6. GDP by birthrate
+7. Highest gdp per Capita
+8. Average regional GDP
+
+
+The countries of the world dataset is used for this publication. It is available for download here [Kaggle](https://www.kaggle.com/fernandol/countries-of-the-world).
+
+## Loading the libraries
+```{r loading_libraries,results='hide',message=FALSE}
+install.packages("ggplot2",repos = "http://cran.us.r-project.org")
+install.packages("tidyverse",repos = "http://cran.us.r-project.org")
+install.packages("janitor",repos = "http://cran.us.r-project.org")
+library("tidyr")
+library("stringr")
+library("dplyr")
+library("janitor")
+library(ggplot2)
+```
+
+## Loading the countries of the world data set
+
+```{r countries}
+countries<-read.csv("countries of the world.csv",sep =',',header = TRUE)
+```
+
+## Data Wrangling
+
+The str function is used to take a glimpse at the countries dataset using glimpse() from the dplyr library
+```{r processing}
+glimpse(countries)
+```
+From a simple glimpse of the dataset several observations are made that will need to be corrected these things are   
+
+* Uppercase letters and spaces in some of the variables(Column names).
+* Some observations have "," instead of "." .
+* The region  variable rows have white spaces.
+* Some variables have wrong data types.
+
+using the clean_names() from the janitor library, all uppercase letters will be converted to lowercase and all spaces will be converted to underscores(_) in the variable names.
+```{r replacing_whitespaces}
+countries<-countries %>% clean_names()
+names(countries)
+  
+```
+
+
+A function add_point is created that will be used to replace "," with "." in the observations.
+```{r addpoint}
+  add_point <-  function(x){
+  str_replace(x, ',','.')
+  }
+
+countries<- countries %>% mutate_all(add_point)
+glimpse(countries)
+
+```
+
+using stringr's str_trim(), the white spaces in region variables rows are removed
+```{r removing_whitespaces}
+  countries <- countries %>% mutate(region=str_trim(region,side=c("both")))
+
+```
+
+Using the mutate function from the dplyr library, the variables(columns) are converted to their appropriate datatype
+
+```{r datatypes}
+    countries<-countries %>% mutate(country=as.factor(country),
+                                region=as.factor(region),
+                                population=as.numeric(population),
+                                climate=as.factor(climate),
+                                area_sq_mi=as.numeric(area_sq_mi),
+                                pop_density_per_sq_mi=as.numeric(pop_density_per_sq_mi),
+                                coastline_coast_area_ratio=as.numeric(coastline_coast_area_ratio),
+                                net_migration=as.numeric(net_migration),
+                                infant_mortality_per_1000_births=as.numeric(infant_mortality_per_1000_births),
+                                gdp_per_capita=as.numeric(gdp_per_capita),
+                                literacy=as.numeric(literacy),
+                                phones_per_1000=as.numeric(phones_per_1000),
+                                arable=as.numeric(arable),
+                                crops=as.numeric(crops),
+                                other=as.numeric(other),
+                                birthrate=as.numeric(birthrate),
+                                deathrate=as.numeric(deathrate),
+                                agriculture=as.numeric(agriculture),
+                                industry=as.numeric(industry),
+                                service=as.numeric(service))
+```
+
+A check is performed to see if there are any missing values
+```{r missing}
+glimpse(countries)
+colSums(is.na(countries))
+```
+
+It is observed that the dataset contains some missing values , therefore all missing values are replaced with the mean of the variable (column).
+```{r filter_out_missing_values,results='hide'}
+means_to_replace<- select_if(ungroup(countries), is.numeric) %>%
+ colMeans(na.rm=T)
+format_mean<-function(.x){
+  ifelse(is.na(.x),as.numeric(format(round(mean(.x, na.rm = TRUE),3),nsmall=3)), as.numeric(.x))
+  
+}
+ countries<-bind_cols(select(ungroup(countries),!is.numeric),
+          select_if(ungroup(countries), is.numeric) %>% 
+            mutate_all(format_mean)
+          ) 
+```
+
+Check if missing values have been replaced with the mean
+```{r replaced_mean}
+colSums(is.na(countries))
+```
+## Answering the questions using ggplot2
+
+### 1. Top 30 countries with the highest population 
+```{r highest_population}
+countries_with_highest_populations<- countries %>% select(country,population) %>%mutate(population=as.numeric(format(round((population/10^9),2),nsmall=2))) %>% arrange(desc(population)) %>% head(n=10)
+
+ggplot(data=countries_with_highest_populations,mapping=aes(x=reorder(country,-population),y=population)) +
+  geom_bar(fill="steel blue",stat="identity")+ 
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) + geom_text(aes(label=population), position=position_dodge(width=0.9), vjust=-0.25,size=2.5) +labs(title="Top 30 countries with the highest population",x ="Country",y="Population (in Billions)")
+
+
+
+```
+
+### 2. Top 30 Countries with the largest area
+```{r largest_area}
+countries_with_largest_area<- countries %>% select(country,area_sq_mi) %>%mutate(area_sq_mi=as.numeric(format(round((area_sq_mi/10^4),2),nsmall=2))) %>% arrange(desc(area_sq_mi)) %>% head(n=10)
+
+ggplot(data=countries_with_largest_area,mapping=aes(x=reorder(country,-area_sq_mi),y=area_sq_mi)) +
+  geom_bar(fill="steel blue",stat="identity")+ 
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) + geom_text(aes(label=area_sq_mi), position=position_dodge(width=0.9), vjust=-0.25,size=2.5) +labs(title="Top 10 countries with the largest Area",x ="Country",y="Area (per 100,0000m)") 
+```
+
+
+### 3. Leading sectors for top 10 countries with the highest G.D.P in US Dollars
+```{r leading_sectors}
+leading_sectors_for_countries_with_highest_gdp<- countries %>% select(country,gdp_per_capita,agriculture,industry,service) %>%mutate(leading_sector=case_when(agriculture > industry & agriculture > service ~"agriculture",
+  industry > agriculture & industry > service ~ "industry",
+  service > agriculture & service > industry ~"service")) %>% 
+  arrange(desc(gdp_per_capita)) %>% head(n=10)
+
+ggplot(data=leading_sectors_for_countries_with_highest_gdp,mapping=aes(x=reorder(country,-gdp_per_capita),y=gdp_per_capita,fill=leading_sector)) +
+  geom_bar(stat="identity")+
+   scale_y_continuous(labels = scales::dollar) +
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) + geom_text(aes(label=gdp_per_capita), position=position_dodge(width=0.9), vjust=-0.25,size=2.5) +labs(title="Leading sectors for top 10 countries with the higest GDP in US Dollars",x ="Country",y="G.D.P per capita in US Dollars ($)") 
+```
+
+
+## 4. Leading sectors in regions based on their G.D.P in U.S Dollars($)
+```{r leading_sectors_in_regions}
+leading_sectors_for_regions_based_on_gdp<- countries %>% select(region,gdp_per_capita,agriculture,industry,service)%>% group_by(region) %>%
+  mutate(leading_sector=case_when(agriculture > industry & agriculture > service ~"agriculture",
+  industry > agriculture & industry > service ~ "industry",
+  service > agriculture & service > industry ~"service"),gdp=sum(gdp_per_capita)) %>% 
+  arrange(desc(gdp)) %>% select(region,gdp,leading_sector) %>% distinct(region,.keep_all=TRUE)
+
+ggplot(data=leading_sectors_for_regions_based_on_gdp,mapping=aes(x=reorder(region,-gdp),y=gdp,fill=leading_sector)) +
+  geom_bar(stat="identity")+
+   scale_y_continuous(labels = scales::dollar) +
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) + geom_text(aes(label=gdp), position=position_dodge(width=0.9), vjust=-0.25,size=2.5) +labs(title="Leading sectors for top 10 countries with the higest GDP in US Dollars",x ="Region",y="G.D.P per capita in US Dollars ($)") 
+```
+
+
+## 5. Top 10 countries with the highest infant mortality rate
+
+```{r higest_infant_mortality}
+countries_with_highest_infant_mortalities<- countries %>% select(country,infant_mortality_per_1000_births) %>% arrange(desc(infant_mortality_per_1000_births)) %>% head(n=10)
+
+ggplot(data=countries_with_highest_infant_mortalities,mapping=aes(x=reorder(country,-infant_mortality_per_1000_births),y=infant_mortality_per_1000_births,)) +
+  geom_bar(stat="identity",fill="steel blue")+ 
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) + geom_text(aes(label=infant_mortality_per_1000_births), position=position_dodge(width=0.9), vjust=-0.25,size=2.5) +labs(title="Top 10 countries with the highest infant mortality rates",x ="Country",y="Mortality per 1000 births")
+
+```
+
+## 6. Countries with the lowest literacy levels
+```{r higest_literacy_levels}
+countries_with_highest_literacy_levels<- countries %>% select(country,literacy) %>% arrange(literacy) %>% head(n=10)
+
+ggplot(data=countries_with_highest_literacy_levels,mapping=aes(x=reorder(country,-literacy),y=literacy)) +
+  geom_bar(stat="identity",fill="steel blue")+  
+  scale_y_continuous(labels =scales::percent_format(scale = 1)) +
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) + geom_text(aes(label=literacy), position=position_dodge(width=0.9), vjust=-0.25,size=2.5) +labs(title="Top 10 countries with the lowest literacy levels",x ="Country",y="literacy level")
+
+```
+
+## 7. Birthrate and Deathrate of  top 10 countries with high G.D,P
+
+```{r birthrate_by_gdp}
+countries_rates_with_high_gdp <- countries %>% select(country,gdp_per_capita,birthrate,deathrate) %>%
+  pivot_longer(c(deathrate,birthrate),names_to="rate") %>%
+  arrange(desc(gdp_per_capita)) %>% 
+head(n=20)
+
+ggplot(data=countries_rates_with_high_gdp,mapping=aes(x=reorder(country,-value),value,fill=rate)) +
+  geom_bar(stat="identity",position="dodge")+
+ theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) + 
+ labs(title="Birthrate  and deathrate of countries with high G.D.P per capita",x ="Country",y="birthtate and deathrate")
+
+```
+
+## 8. Birthrate and Deathrate of top 10 countries  with low G.D,P
+
+```{r hrate_by_low_gdp}
+countries_rates_with_low_gdp <- countries %>% select(country,gdp_per_capita,birthrate,deathrate) %>%
+  pivot_longer(c(deathrate,birthrate),names_to="rate") %>%
+  arrange(gdp_per_capita) %>% 
+head(n=20)
+
+ggplot(data=countries_rates_with_low_gdp,mapping=aes(x=reorder(country,-value),value,fill=rate)) +
+  geom_bar(stat="identity",position="dodge")+
+ theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) + 
+ labs(title="Birthrate  and deathrate of countries with high G.D.P per capita",x ="Country",y="brithtrate and deathrate")
+
+```
