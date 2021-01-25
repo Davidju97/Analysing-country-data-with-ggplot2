@@ -1,7 +1,5 @@
 ---
 title: "Analysing countries of the world using ggplot2"
-author: "David Ju Nyambe"
-date: "1/20/2021"
 output: html_document
 ---
 
@@ -12,14 +10,14 @@ knitr::opts_chunk$set(warning = FALSE)
 
 ## Questions to be answered
 
-1. Top 30 countries with the highest populations
-2. Top 30 countries with the largest area
-3. Birthrate and deathrate of 50 countries with the highest literacy levels
-4. Birthrate and deathrate of 50 countires with the lowest literacy
-5. GDP by region
-6. GDP by birthrate
-7. Highest gdp per Capita
-8. Average regional GDP
+1. Top 10 countries with the highest population
+2. Top 10 countries with the largest area
+3. Leadinjg sector for the top 10 countries with the highest G.D.P in US dollars
+4. Leading sectors for regions based on their G.D.P in US dollars
+5. Top 10 countries with the highest infant mortality
+6. Countries with the lowest literacy levels
+7. Birthrate and Deathrate of top 10 countries with the highest G.D.P
+8. Birthrate and Deathrate of top 0 countries with low G.D.P
 
 
 The countries of the world dataset is used for this publication. It is available for download here [Kaggle](https://www.kaggle.com/fernandol/countries-of-the-world).
@@ -44,7 +42,7 @@ countries<-read.csv("countries of the world.csv",sep =',',header = TRUE)
 
 ## Data Wrangling
 
-The str function is used to take a glimpse at the countries dataset using glimpse() from the dplyr library
+A glimpse at the countries dataset is taken  using glimpse() from the dplyr library
 ```{r processing}
 glimpse(countries)
 ```
@@ -153,7 +151,7 @@ ggplot(data=countries_with_largest_area,mapping=aes(x=reorder(country,-area_sq_m
 ```
 
 
-### 3. Leading sectors for top 10 countries with the highest G.D.P in US Dollars
+### 3. Leading sector for top 10 countries with the highest G.D.P in US Dollars
 ```{r leading_sectors}
 leading_sectors_for_countries_with_highest_gdp<- countries %>% select(country,gdp_per_capita,agriculture,industry,service) %>%mutate(leading_sector=case_when(agriculture > industry & agriculture > service ~"agriculture",
   industry > agriculture & industry > service ~ "industry",
@@ -167,7 +165,7 @@ ggplot(data=leading_sectors_for_countries_with_highest_gdp,mapping=aes(x=reorder
 ```
 
 
-## 4. Leading sectors in regions based on their G.D.P in U.S Dollars($)
+### 4. Leading sectors in regions based on their G.D.P in U.S Dollars($)
 ```{r leading_sectors_in_regions}
 leading_sectors_for_regions_based_on_gdp<- countries %>% select(region,gdp_per_capita,agriculture,industry,service)%>% group_by(region) %>%
   mutate(leading_sector=case_when(agriculture > industry & agriculture > service ~"agriculture",
@@ -182,7 +180,7 @@ ggplot(data=leading_sectors_for_regions_based_on_gdp,mapping=aes(x=reorder(regio
 ```
 
 
-## 5. Top 10 countries with the highest infant mortality rate
+### 5. Top 10 countries with the highest infant mortality rate
 
 ```{r higest_infant_mortality}
 countries_with_highest_infant_mortalities<- countries %>% select(country,infant_mortality_per_1000_births) %>% arrange(desc(infant_mortality_per_1000_births)) %>% head(n=10)
@@ -193,7 +191,7 @@ ggplot(data=countries_with_highest_infant_mortalities,mapping=aes(x=reorder(coun
 
 ```
 
-## 6. Countries with the lowest literacy levels
+### 6. Countries with the lowest literacy levels
 ```{r higest_literacy_levels}
 countries_with_highest_literacy_levels<- countries %>% select(country,literacy) %>% arrange(literacy) %>% head(n=10)
 
@@ -204,7 +202,7 @@ ggplot(data=countries_with_highest_literacy_levels,mapping=aes(x=reorder(country
 
 ```
 
-## 7. Birthrate and Deathrate of  top 10 countries with high G.D,P
+### 7. Birthrate and Deathrate of  top 10 countries with high G.D,P
 
 ```{r birthrate_by_gdp}
 countries_rates_with_high_gdp <- countries %>% select(country,gdp_per_capita,birthrate,deathrate) %>%
@@ -219,7 +217,7 @@ ggplot(data=countries_rates_with_high_gdp,mapping=aes(x=reorder(country,-value),
 
 ```
 
-## 8. Birthrate and Deathrate of top 10 countries  with low G.D,P
+### 8. Birthrate and Deathrate of top 10 countries  with low G.D,P
 
 ```{r hrate_by_low_gdp}
 countries_rates_with_low_gdp <- countries %>% select(country,gdp_per_capita,birthrate,deathrate) %>%
